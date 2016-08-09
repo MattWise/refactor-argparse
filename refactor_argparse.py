@@ -2,10 +2,6 @@ import argparse,re
 
 argument_re=re.compile(r".*add_argument")
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--foo', default="hello", help='foo help')
-parser.add_argument('bar', action="store_true", help='bar help')
-
 def extract_args(file_path):
 
     def get_arg(text,start):
@@ -33,8 +29,13 @@ def extract_args(file_path):
 
     return args
 
-
 def extract_dcts(file_path):
 
+    args=extract_args(file_path)
+
     parser=argparse.ArgumentParser()
-    parser.add_argument()
+    for arg in args:
+        eval("parser.add_argument({})".format(arg))
+
+    for action in parser._actions:
+        print action
