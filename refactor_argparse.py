@@ -1,11 +1,22 @@
 import argparse
 import os
 import re
+import subprocess
 
 argument_re=re.compile(r".*add_argument")
 
 line_sep="\n"
 indent="\t"
+
+
+def auto_format_string(string):
+    with open("tmp", 'w') as tmp:
+        tmp.write(string)
+    subprocess.call(["autopep8", "--in-place", "--aggressive", "--aggressive", "tmp"])
+    with open("tmp") as tmp:
+        string = tmp.read()
+    os.remove("tmp")
+    return string
 
 def load_file(file_path):
     with open(os.path.abspath(file_path),"r") as f:
@@ -69,12 +80,12 @@ def build_arg_list(default_dct):
             arg_list.append("{}={}".format(arg,default))
         else:
             arg_list.append(arg)
-    arg_list.sort(key=lambda arg_token: not "=" in arg_token)
+    arg_list.sort(key=lambda arg_token: "=" in arg_token)
     return arg_list
 
 def build_signature(arg_list):
     args=",".join(arg_list)
-    return "def main("+args+")"
+    return "def main(" + args + "):"
 
 
 def build_params_types(help_dct, type_dct):
@@ -116,12 +127,12 @@ def build_get_args(text):
     types.sort(key=key)
 
     get_args_string = sep.join([build_signature(arg_list), build_docstring(params, types), spoofing_code])
-    print get_args_string
     return get_args_string
 
 def main(file_path):
     text=load_file(file_path)
-    get_args_string = build_get_args(text)
+    get_args_string = auto_format_string(build_get_args(text))
+    print get_args_string
 
 if __name__ == '__main__':
     main("./test_input.py")
