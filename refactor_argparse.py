@@ -1,4 +1,6 @@
-import argparse,re,os
+import argparse
+import os
+import re
 
 argument_re=re.compile(r".*add_argument")
 
@@ -28,13 +30,9 @@ def extract_args(text):
         return arg
 
     args=[]
-
-    with open(file_path,"r") as f:
-        text=f.read()
-        for m in argument_re.finditer(text):
-            start=m.span()[-1]
-            args.append(get_arg(text,start))
-
+    for m in argument_re.finditer(text):
+        start = m.span()[-1]
+        args.append(get_arg(text, start))
     return args
 
 def extract_dcts(text):
@@ -78,15 +76,21 @@ def build_signature(arg_list):
     args=",".join(arg_list)
     return "def main("+args+")"
 
-def build_docstring(help_dct,type_dct):
-    sep=line_sep+indent
-    params=[]
-    types=[]
+
+def build_params_types(help_dct, type_dct):
+    params = []
+    types = []
 
     for arg in help_dct.keys():
-        h,t=help_dct[arg],type_dct[arg]
-        params.append(':param {}: {}'.format(arg,h))
-        types.append(':type {}: {} [insert type description]'.format(arg,t))
+        h, t = help_dct[arg], type_dct[arg]
+        params.append(':param {}: {}'.format(arg, h))
+        types.append(':type {}: {} [insert type description]'.format(arg, t))
+
+    return params, types
+
+
+def build_docstring(params, types):
+    sep = line_sep + indent
 
     params=sep.join(params)
     types= sep.join(types)
@@ -94,16 +98,30 @@ def build_docstring(help_dct,type_dct):
     return sep.join(['"""',params,types,'"""'])
 
 
+def build_get_args(text):
+    sep = line_sep + indent
+    spoofing_code = """a"""  # TODO
 
-def build_main(text):
     dcts= help_dct, default_dct, type_dct=extract_dcts(text)
 
+    arg_list = build_arg_list(default_dct)
+    params, types = build_params_types(help_dct, type_dct)
 
+    def key(arg):
+        for index, a in enumerate(arg_list):
+            if arg in a:
+                return index
+
+    params.sort(key=key)
+    types.sort(key=key)
+
+    get_args_string = sep.join([build_signature(arg_list), build_docstring(params, types), spoofing_code])
+    print get_args_string
+    return get_args_string
 
 def main(file_path):
     text=load_file(file_path)
-    main=build_main(text)
+    get_args_string = build_get_args(text)
 
 if __name__ == '__main__':
-    help_dct, default_dct, type_dct=extract_dcts("./test_input.py")
-    print help_dct,default_dct,type_dct
+    main("./test_input.py")
